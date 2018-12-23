@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>微传停车展示页面</title>
+	<link href="test.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<blockquote>
+  <h1 align="center" style="font-family:verdana;font-size:50px;color:DeepSkyBlue"><strong>微传停车展示</strong></h1>
+</blockquote>
+<button type="button" onclick="CarParking()">进车</button>
+<!--&nbsp;-->
+<button type="button" onclick="CarAway()">出车</button>
+
+
+<!--<input type="text" id="deviceNmameInput" />-->
+	
+
+<button type="button" onclick="deviceNameSet()">更改设备</button>
+<br/><br/><br/><br/><br/>
+	<div class="car">
+	  <div class="car-head"></div>
+	  <div class="car-bottom"></div>
+	  <div class="car-wheels">
+		<div class="wheel flt-left"></div>
+		<div class="wheel flt-right"></div>
+	  </div>
+	</div>
+		
+	<hr style="border:1 dashed #987cb9" width="100%" color="#987cb9" size="1">
+	<br/><br/>
+	<p id="receiveID"></p>
+	<script>
+		var ws;
+		var car = document.getElementsByClassName("car");
+		var endDistance = (document.documentElement.clientWidth - 250)/2;
+		var leftOffset = 0;
+		var deviceName = "VSP100_KJ09";
+		var interval;
+		window.onbeforeunload = function(event) {
+			ws.close()
+		}
+				
+		function move(){
+
+			car[0].style.marginLeft = leftOffset+"px";
+			leftOffset += 20;
+			if(leftOffset > endDistance) {
+
+				leftOffset = 0;
+				clearInterval(interval);
+			}
+		}
+		
+		function CarParking(){
+			clearInterval(interval);
+			leftOffset = 0;			
+			endDistance = (document.documentElement.clientWidth - 250)/2;
+			interval = setInterval(move,20);
+		}
+		
+		function CarAway(){
+			clearInterval(interval);
+			leftOffset = (document.documentElement.clientWidth - 250)/2;
+			endDistance = (document.documentElement.clientWidth);
+			interval = setInterval(move,20);
+			
+		}
+		
+		function deviceNameSet(){
+			var input = prompt('请输入设备名称:',deviceName);
+			if(input == "") 
+			{
+				deviceNameSet();
+			}
+			else if(input == null)  {}
+			else deviceName = input
+			//deviceName= document.getElementById("deviceNmameInput").value;
+			//alert(deviceName)
+			
+		}
+		
+		function WebSocketConnect(){
+			if ("WebSocket" in window)
+			{  
+				
+				ws = new WebSocket("wss://vparking.vtrantech.com");
+				ws.onopen = function()
+				{
+					document.title = "微传停车展示页面"
+					var send = {
+					  code: "CarSignalInfo",
+					  body: deviceName
+					};
+					ws.send(JSON.stringify(send));
+				}
+
+				ws.onmessage = function (evt) 
+				{ 
+					var received_msg = evt.data;
+					var txt= document.getElementById("receiveID");
+
+					var packJson = JSON.parse(received_msg);
+					
+					//alert(packJson.carData.deviceName);	
+					if(packJson.carData.deviceName == deviceName )
+					{
+						if(packJson.carData.carST == "1") CarParking()
+						else CarAway()
+						txt.innerHTML=received_msg;
+					}
+						
+				}
+
+				ws.onclose = function()
+				{ 
+						
+					document.title = "连接断开"
+					WebSocketConnect();
+				}
+				ws.onerror = function()
+				{ 
+						
+					document.title = "连接异常"
+				}
+			}
+			else
+			{
+				alert("您的浏览器不支持 WebSocket!");
+			}
+		}
+
+		
+		WebSocketConnect();
+		CarAway();
+	</script>
+</body>
+</html>
